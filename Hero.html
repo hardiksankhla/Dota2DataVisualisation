@@ -1,0 +1,549 @@
+<html>
+
+<title>Dota 2 Statistics</title>
+<head>
+	<script src="http://d3js.org/d3.v3.min.js"  charset="utf-8"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/queue-async/1.0.7/queue.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.20/topojson.min.js"></script>
+	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+	<style>
+	.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    padding: 12px 16px;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+	.d3-tip
+	{
+		line-height:1;
+		font-weight:bold;
+		padding:12px;
+		background:rgba(0,0,0,0.9);
+		color:#fff;
+		border-radius: 2px;
+	}
+	.d3-tip:after {
+	  box-sizing: border-box;
+	  display: inline;
+	  font-size: 10px;
+	  width: 100%;
+	  line-height: 1;
+	  color: rgba(0, 0, 0, 0.8);
+	  content: "\25BC";
+	  position: absolute;
+	  text-align: center;
+	}
+
+	/* Style northward tooltips differently */
+	.d3-tip.n:after {
+	  margin: -1px 0 0 0;
+	  top: 100%;
+	  left: 0;
+	}
+	</style>
+<head>
+
+<body>
+
+	<h4>NAME : SUJOY SUPRIYO KAR AND HARDIK SANKHLA</h4>
+	<h4>STUDENT ID: #01577342 AND #01617980 RESPECTIVELY</h4>
+	<h3>Data Visualization (DSC 530/CIS 602-01)</h3>
+	<h3>Project : Dota 2 Statistics</h3>
+	<p>This project i.e "Dota 2 statistics" has been created by Sujoy Kar and Hardik Sankhla. The Main aim of this project is to capture live data of players playing Dota all over the world and to present a visualization to demonstrate different trends, activities and stats.</p>
+	<p>Please wait for <b><u>15-20 seconds</u></b> for the project to load as we have added a delay for some datasets to load up properly</p>
+	<p>This project requires <b><u>"Allow-Control-Allow-Origin: *"</u></b> for chrome(browser), so please download the chrome extention from : "https://chrome.google.com/webstore/detail/allow-control-allow-origi/nlfbmbojpeacfghkpbjhddihlkkiljbi?hl=en"</p> 
+	<p><b>Table of Contents</b><br>
+	1. Choropleth representation for the Player's country data of games that ended recently(Refresh for new Output)<br>
+	2. A D3 Radar Chart Design<br>
+	3. Trend Chart for a particular Hero(character) being played the most</p>
+	
+<div class="dropdown">
+	<span><button type="button"><h1>Other visualization Tool</h1></button></span>
+	<div class="dropdown-content">
+	<a href="index.html"><h3>Real-Time Data</h3></a>
+	<a href="index1.html"><h3>Recorded Data</h3></a>
+	</div>
+	</div>
+<br>
+<div class="heroIcon"><h1>Hero Trend</h1></div>
+<script>
+
+
+function processData(errors, getMatchId, heroname) {
+
+	var heronames;
+	heronames=heroname.result.heroes;
+	console.log(getMatchId);
+	console.log(heronames);
+	var matchId = [];
+
+	for(var i = 0; i < getMatchId.result.matches.length; i++){
+		matchId.push(getMatchId.result.matches[i].match_id);
+	}
+
+	console.log(matchId);
+	var getMatches = [];
+			
+	for(var i =0; i < matchId.length; i++){
+		function tempData(errors, file4data){	
+			if(file4data != undefined){				
+			getMatches.push(file4data);
+			}
+		}
+			
+		queue()
+			.defer(d3.json, "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/v001/?key=3E11DA346FDD004A984BB5C028DED83B&match_id="+matchId[i])
+			.await(tempData);
+	}
+				 
+	var x = 1;                     					//  set your counter to 1
+
+	function myLoop () {           									//  create a loop function
+		setTimeout(function () {    						
+			
+			console.log(getMatches);
+				
+			var specificPlayer = [];
+			var heroId = [];
+				
+			for(i=0;i<getMatches.length;i++){
+				for(j=0;j<getMatches[i].result.players.length;j++){
+					if(getMatches[i].result.players[j].hero_id != 0){
+						specificPlayer.push(getMatches[i].result.players[j]);
+						heroId.push(getMatches[i].result.players[j].hero_id);
+					}
+				}
+			}
+
+			console.log(specificPlayer);
+			heroId.sort();
+			console.log(heroId);
+				
+			var countHeroId = [];			
+			var current = null;
+			var count = 0;
+			
+			for (var i = 0; i < heroId.length; i++) {
+				if (heroId[i] != current) {
+					if (count > 0) {
+						countHeroId.push({"hero_id":current,"count":count});
+					}
+					current = heroId[i];
+					count = 1;
+				} 
+				else {
+					count++;
+				}
+			}
+			
+			if (count > 0) {
+				countHeroId.push({"hero_id":current,"count":count});
+			}
+			
+			console.log(countHeroId);
+			var finalArr=[];
+			
+			for(i=1;i<=2*heronames.length;i++){
+				for(j=0;j<heronames.length;j++){
+					if(i == heronames[j].id){
+						finalArr.push({"id":i,"count":0,"name":heronames[j].name.slice(14)});
+					}
+				}
+			}
+		
+			for(i=0;i<finalArr.length;i++){
+				for(j=0;j<countHeroId.length;j++){
+					if(finalArr[i].id ==countHeroId[j].hero_id){
+						finalArr[i].count =countHeroId[j].count;
+					}
+				}
+			}
+			console.log(finalArr);
+
+			var final2Arr=[];
+			for(k=0;k<finalArr.length;k++){
+				var hero_matches = [];
+				final2Arr.push({"id":finalArr[k].id,"count":finalArr[k].count,"name":finalArr[k].name,"win":0,"loss":0,"kills_win":0,"deaths_win":0,"assists_win":0,"kills_loss":0,"deaths_loss":0,"assists_loss":0,"noofgames_loss":0,"noofgames_win":0,"xpm_win":0,"gpm_win":0,"xpm_loss":0,"gpm_loss":0,"matches":hero_matches});
+				var win=0;
+				var loss=0;
+				var xpm_win=0;
+				var gpm_win=0;
+				var xpm_loss=0;
+				var gpm_loss=0;
+				var kills_win=0;
+				var kills_loss=0;
+				var deaths_win=0;
+				var deaths_loss=0;
+				var assists_win=0;
+				var assists_loss=0;
+				var noofgames_win=0;
+				var noofgames_loss=0;
+				var no_of_games_with_this_hero=0;
+
+				for(i=0;i<getMatches.length;i++){
+					for(j=0;j<getMatches[i].result.players.length;j++){
+						if(finalArr[k].id==getMatches[i].result.players[j].hero_id){
+
+							no_of_games_with_this_hero= no_of_games_with_this_hero+1;
+							hero_matches.push({"no_of_games_with_this_hero":no_of_games_with_this_hero,"win":0,"loss":0,"kills":getMatches[i].result.players[j].kills,"deaths":getMatches[i].result.players[j].deaths,"assists":getMatches[i].result.players[j].assists,"noofgames":0,"xpm":getMatches[i].result.players[j].xp_per_min,"gpm":getMatches[i].result.players[j].gold_per_min});
+							
+							if(getMatches[i].result.players[j].player_slot<5){
+								
+								if(getMatches[i].result.radiant_win==true){
+									win++;
+									hero_matches[no_of_games_with_this_hero-1].win=1;
+									/*if(getMatches[i].result.lobby_type==0 && getMatches[i].result.game_mode<6 && getMatches[i].result.game_mode>0){*/
+										kills_win = kills_win + getMatches[i].result.players[j].kills;
+										deaths_win = deaths_win + getMatches[i].result.players[j].deaths;
+										assists_win = assists_win + getMatches[i].result.players[j].assists;
+										xpm_win = xpm_win + getMatches[i].result.players[j].xp_per_min;
+										gpm_win = gpm_win + getMatches[i].result.players[j].gold_per_min;
+										noofgames_win = noofgames_win + 1;
+									//}
+								}
+								else{
+									loss++;
+									hero_matches[no_of_games_with_this_hero-1].loss=1;
+									/*if(getMatches[i].result.lobby_type==0 && getMatches[i].result.game_mode<6 && getMatches[i].result.game_mode>0){*/
+										kills_loss = kills_loss + getMatches[i].result.players[j].kills;
+										deaths_loss = deaths_loss + getMatches[i].result.players[j].deaths;
+										assists_loss = assists_loss + getMatches[i].result.players[j].assists;
+										xpm_loss = xpm_loss + getMatches[i].result.players[j].xp_per_min;
+										gpm_loss = gpm_loss + getMatches[i].result.players[j].gold_per_min;
+										noofgames_loss = noofgames_loss + 1;
+									//}
+								}	
+							}
+							
+							if(getMatches[i].result.players[j].player_slot>127){
+								
+								if(getMatches[i].result.radiant_win==true){
+									loss++;
+									hero_matches[no_of_games_with_this_hero-1].loss=1;
+									/*if(getMatches[i].result.lobby_type==0 && getMatches[i].result.game_mode<6 && getMatches[i].result.game_mode>0){*/
+										kills_loss = kills_loss + getMatches[i].result.players[j].kills;
+										deaths_loss = deaths_loss + getMatches[i].result.players[j].deaths;
+										assists_loss = assists_loss + getMatches[i].result.players[j].assists;
+										xpm_loss = xpm_loss + getMatches[i].result.players[j].xp_per_min;
+										gpm_loss = gpm_loss + getMatches[i].result.players[j].gold_per_min;
+										noofgames_loss = noofgames_loss + 1;
+									//}
+								}
+								else{
+									win++;
+									hero_matches[no_of_games_with_this_hero-1].win=1;
+									/*if(getMatches[i].result.lobby_type==0 && getMatches[i].result.game_mode<6 && getMatches[i].result.game_mode>0){*/
+										kills_win = kills_win + getMatches[i].result.players[j].kills;
+										deaths_win = deaths_win + getMatches[i].result.players[j].deaths;
+										assists_win = assists_win + getMatches[i].result.players[j].assists;
+										xpm_win = xpm_win + getMatches[i].result.players[j].xp_per_min;
+										gpm_win = gpm_win + getMatches[i].result.players[j].gold_per_min;
+										noofgames_win = noofgames_win + 1;
+									//}	
+								}
+							}
+
+						}
+					}
+				}
+				final2Arr[k].win = win;
+				final2Arr[k].loss = loss;
+				final2Arr[k].noofgames_win = noofgames_win;
+				final2Arr[k].noofgames_loss = noofgames_loss;
+				final2Arr[k].gpm_win = Math.round( gpm_win/noofgames_win * 100) / 100;
+				final2Arr[k].xpm_win = Math.round( xpm_win/noofgames_win * 100) / 100;
+				final2Arr[k].gpm_loss = Math.round( gpm_loss/noofgames_loss * 100) / 100;
+				final2Arr[k].xpm_loss = Math.round( xpm_loss/noofgames_loss * 100) / 100;
+				final2Arr[k].kills_win = Math.round( kills_win/noofgames_win * 100) / 100;
+				final2Arr[k].kills_loss = Math.round( kills_loss/noofgames_loss * 100) / 100;
+				final2Arr[k].deaths_win = Math.round( deaths_win/noofgames_win * 100) / 100;
+				final2Arr[k].deaths_loss = Math.round( deaths_loss/noofgames_loss * 100) / 100;
+				final2Arr[k].assists_win = Math.round( assists_win/noofgames_win * 100) / 100;
+				final2Arr[k].assists_loss = Math.round( assists_loss/noofgames_loss * 100) / 100;
+				
+			}	
+			console.log(final2Arr);
+			
+			var min_win = final2Arr[0].noofgames_win;
+			var max_win = final2Arr[0].noofgames_win;
+			for(var i = 0; i < final2Arr.length; i++)
+			{
+				if(min_win > final2Arr[i].noofgames_win)
+				{
+					min_win = final2Arr[i].noofgames_win;
+				}
+				if(max_win < final2Arr[i].noofgames_win)
+				{
+					max_win = final2Arr[i].noofgames_win;
+				}
+			}
+				console.log("min_win = "+min_win);
+				console.log("max_win = "+max_win);
+			
+			var color_win;
+			color_win = d3.scale.linear()
+				.domain([min_win,max_win])
+				.range(["rgb(0,255,0)", "rgb(0,0,255)"])
+				.interpolate(d3.interpolateHcl);
+			
+			var min_loss = final2Arr[0].noofgames_loss;
+			var max_loss = final2Arr[0].noofgames_loss;
+			for(var i = 0; i < final2Arr.length; i++)
+			{
+				if(min_loss > final2Arr[i].noofgames_loss)
+				{
+					min_loss = final2Arr[i].noofgames_loss;
+				}
+				if(max_loss < final2Arr[i].noofgames_loss)
+				{
+					max_loss = final2Arr[i].noofgames_loss;
+				}
+			}
+				console.log("min_loss = "+min_loss);
+				console.log("max_loss = "+max_loss);
+
+			var max = 0;
+			for(var i = 0; i < final2Arr.length; i++)
+			{
+				if(max < final2Arr[i].count)
+				{
+					max = final2Arr[i].count;
+				}
+			}
+				console.log("max_value = "+max);
+
+			var color_loss;
+			color_loss = d3.scale.linear()
+				.domain([min_loss,max_loss])
+				.range(["rgb(255, 255, 0)", "rgb(255, 0, 0)"])
+				.interpolate(d3.interpolateHcl);
+
+			var x = screen.width;
+			var barWidth = 59;
+			var noofbar = Math.floor((screen.width-10)/(barWidth+2));
+
+			var svg = d3.select("div.heroIcon").append("svg")
+				.attr("width", function(d,i) { return (noofbar*(barWidth+2))+10 ;})
+				.attr("height", function(d,i){return (Math.floor(final2Arr.length/noofbar)+1)*(max*10+90)+50;});
+			
+			var selection = svg.selectAll("rect")
+				.data(final2Arr)
+
+			tipWin = d3.tip().attr("class","d3-tip").html(function(d) {return "Wins:- <span style='color:red'>"+d.win+"</span><br> Kills:- <span style='color:red'>"+d.kills_win+"</span><br> Deaths:- <span style='color:red'>"+d.deaths_win+"</span><br> Assists:- <span style='color:red'>"+d.assists_win+"</span><br> XPM:- <span style='color:red'>"+d.xpm_win+"</span><br> GPM:- <span style='color:red'>"+d.gpm_win+"</span>" ; });
+				
+			tipLoss = d3.tip().attr("class","d3-tip").html(function(d) {return "Loss:- <span style='color:red'>"+d.loss+"</span><br> Kills:- <span style='color:red'>"+d.kills_loss+"</span><br> Deaths:- <span style='color:red'>"+d.deaths_loss+"</span><br>  Assists:- <span style='color:red'>"+d.assists_loss+"</span><br> XPM:- <span style='color:red'>"+d.xpm_loss+"</span><br> GPM:- <span style='color:red'>"+d.gpm_loss+"</span>" ; });	
+
+			
+			selection
+				.enter()
+				.append("rect")
+				.attr("y", function(d,i){return (Math.floor(final2Arr.length/noofbar)+1)*(max*10+90) - final2Arr[i].noofgames_win*10 - Math.floor(i/noofbar)*(max*10+90) })
+				.attr("x", function(d,i) { return (i%noofbar)*(barWidth+2)+10 })
+				.attr("height", function(d,i) { return final2Arr[i].noofgames_win*10; })
+				.attr("width", barWidth)
+				.attr("class","bar_win")
+				//.call(tip)
+				.style("fill", function(d,i)
+					{return color_win(final2Arr[i].noofgames_win)}
+						);
+
+			
+			selection
+				.enter()
+				.append("rect")
+				.attr("y", function(d,i){return (Math.floor(final2Arr.length/noofbar)+1)*(max*10+90) - (final2Arr[i].noofgames_win+final2Arr[i].noofgames_loss)*10 - Math.floor(i/noofbar)*(max*10+90) })
+				.attr("x", function(d,i) { return (i%noofbar)*(barWidth+2)+10 })
+				.attr("height", function(d,i) { return final2Arr[i].noofgames_loss*10; })
+				.attr("width", barWidth)
+				.attr("class","bar_loss")
+				//.call(tip)
+				.style("fill", function(d,i)
+					{return color_loss(final2Arr[i].noofgames_loss)}
+						);	
+			//var svg = d3.select("svg")
+			
+			svg.call(tipWin);
+			svg.selectAll('rect.bar_win')
+				.on('mouseover',tipWin.show)
+				.on('mouseout',tipWin.hide);
+
+			svg.call(tipLoss);
+			svg.selectAll('rect.bar_loss')
+				.on('mouseover',tipLoss.show)
+				.on('mouseout',tipLoss.hide);	
+
+			var g = svg.selectAll("g")
+				.data(final2Arr)
+				.enter()
+				.append("g");
+			
+			var img = g.append("svg1:image")
+				.attr("y", function(d,i){return (Math.floor(final2Arr.length/noofbar)+1)*(max*10+90) - Math.floor(i/noofbar)*(max*10+90) })
+				.attr("x", function(d,i) { return (i%noofbar)*(barWidth+2)+10 })
+				.attr("height", 33)
+				.attr("width", barWidth)
+				.attr("class","icon")
+				.attr("xlink:href", function(d,i){return "http://cdn.dota2.com/apps/dota2/images/heroes/"+final2Arr[i].name+"_sb.png";});
+
+			tipIcon = d3.tip().attr("class","d3-tip").html(	function(d) {
+																/*var bartool = d3.select("div.heroIcon").append("svg")
+																	.attr("width", 800)
+																	.attr("height", 600);
+
+																var selection1 = bartool.selectAll("rect.tool")
+																	.data(d.matches);
+																
+																selection1
+																	.enter()
+																	.append("rect")
+																	.attr("y", function(d,i){return (Math.floor(final2Arr.length/noofbar)+1)*(max*10+90) - final2Arr[i].noofgames_win*10 - Math.floor(i/noofbar)*(max*10+90) })
+																	.attr("x", function(d,i) { return (i%noofbar)*(barWidth+2)+10 })
+																	.attr("height", function(d,i) { return final2Arr[i].noofgames_win*10; })
+																	.attr("width", barWidth)
+																	.attr("class","tool")
+																	//.call(tip)
+																	.style("fill", blue);	
+
+																return bartool ; */
+															});
+
+			svg.call(tipIcon);
+			svg.selectAll('image.icon')
+				.on('mouseover',tipIcon.show)
+				.on('mouseout',tipIcon.hide);			
+				
+			selection.enter().append("text")
+				.attr("y", function(d,i){return (Math.floor(final2Arr.length/noofbar)+1)*(max*10+90) - Math.floor(i/noofbar)*(max*10+90)-3 })
+				.attr("x", function(d,i) { return (i%noofbar)*(barWidth+2)+15 })
+				.text( function(d,i){ return "win : "+final2Arr[i].noofgames_win;})
+			
+			selection.enter().append("text")
+				.attr("y", function(d,i){return (Math.floor(final2Arr.length/noofbar)+1)*(max*10+90) - (final2Arr[i].noofgames_win+final2Arr[i].noofgames_loss)*10- Math.floor(i/noofbar)*(max*10+90)-17 })
+				.attr("x", function(d,i) { return (i%noofbar)*(barWidth+2)+15 })
+				.text( function(d,i){ return "loss : "+final2Arr[i].noofgames_loss;})
+
+			selection.enter().append("text")
+				.attr("y", function(d,i){return (Math.floor(final2Arr.length/noofbar)+1)*(max*10+90) - Math.floor(i/noofbar)*(max*10+90)+45 })
+				.attr("x", function(d,i) { return (i%noofbar)*(barWidth+2)+15 })
+				.text( function(d,i){ var v = ""+final2Arr[i].name.split("_", 1)+"";
+										var	k = v.slice(0,7);
+										return k;
+										console.log(k);})
+			
+			var legend1Size = 150;
+			var numLevels;
+			// for continuous, each rect is 1px wide
+			numLevels = 150;
+			var legend1 = svg.append("g").attr("class", "YlGn");
+			var levels = legend1.selectAll("levels")
+			.data(d3.range(numLevels))
+			.enter().append("rect")
+			.attr("x", function(d) {
+					return (noofbar*(barWidth+2))+10 - legend1Size - 90 +
+					d * legend1Size / numLevels;
+			})
+			.attr("y", 40)
+			.attr("width", legend1Size / numLevels)
+			.attr("height", 16)
+			.style("stroke", "none");
+
+			levels.style("fill", function(d) {
+				return color_win(min_win * (legend1Size - d) / legend1Size + max_win * d / legend1Size);
+			})
+			  
+
+			legend1.append("text")
+			.attr("x", (noofbar*(barWidth+2))+10 - legend1Size - 90)
+			.attr("y",  35)
+			.attr("text-anchor", "middle")
+			.text(min_win)
+
+			legend1.append("text")
+			.attr("x", (noofbar*(barWidth+2))+10 - 90)
+			.attr("y", 35)
+			.attr("text-anchor", "middle")
+			.text(max_win)
+
+			legend1.append("text")
+			.attr("x", (noofbar*(barWidth+2))+10 - legend1Size / 2 - 90)
+			.attr("y", 15)
+			.attr("text-anchor", "middle")
+			.text("Wins with a perticular hero")	
+			
+			
+			var legend2Size = 150;
+			var numLevels;
+			// for continuous, each rect is 1px wide
+			numLevels = 150;
+			var legend2 = svg.append("g").attr("class", "YlGn");
+			var levels = legend2.selectAll("levels")
+			.data(d3.range(numLevels))
+			.enter().append("rect")
+			.attr("x", function(d) {
+					return (noofbar*(barWidth+2))+10 - legend2Size - 90 +
+					d * legend2Size / numLevels;
+			})
+			.attr("y", 140)
+			.attr("width", legend2Size / numLevels)
+			.attr("height", 16)
+			.style("stroke", "none");
+
+			levels.style("fill", function(d) {
+				return color_loss(min_loss * (legend2Size - d) / legend2Size + max_loss * d / legend2Size);
+			})
+			  
+
+			legend2.append("text")
+			.attr("x", (noofbar*(barWidth+2))+10 - legend2Size - 90)
+			.attr("y",  135)
+			.attr("text-anchor", "middle")
+			.text(min_loss)
+
+			legend2.append("text")
+			.attr("x", (noofbar*(barWidth+2))+10 - 90)
+			.attr("y", 135)
+			.attr("text-anchor", "middle")
+			.text(max_loss)
+
+			legend2.append("text")
+			.attr("x", (noofbar*(barWidth+2))+10 - legend2Size / 2 - 90)
+			.attr("y", 115)
+			.attr("text-anchor", "middle")
+			.text("Losss with a perticular hero")	
+			
+
+
+				//your code ends here
+			x++;                     					//  increment the counter
+			if (x < 1) {            								//  if the counter < 10, call the loop function
+				myLoop();             					//  ..  again which will trigger another 
+			}
+		                        					//  ..  setTimeout()
+		} , 15000)
+	}
+	
+	myLoop();		
+}
+
+queue()
+
+	.defer(d3.json, "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/V001/?key=3E11DA346FDD004A984BB5C028DED83B")
+	.defer(d3.json, "https://api.steampowered.com/IEconDOTA2_570/GetHeroes/v1/?key=3E11DA346FDD004A984BB5C028DED83B")
+	.await(processData);
+
+</script>
+
+</body>
+
+</html>

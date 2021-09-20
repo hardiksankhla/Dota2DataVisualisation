@@ -1,0 +1,887 @@
+<html>
+<title>Dota 2 Statistics</title>
+<head>
+<style>
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    padding: 12px 16px;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+.d3-tip{
+		line-height: 1;
+		font-weight: bold;
+		padding: 12px;
+		background: rgba(250, 0, 0, 0.9);
+		color: #fff;
+		border-radius: 2px;
+	}
+	
+	.d3-tip:after {
+        box-sizing: border-box;
+        display: inline;
+        font-size: 10px;
+        width: 100%;
+        line-height: 1;
+        color: rgba(0, 0, 0, 0.8);
+        content: "\25BC";
+        position: absolute;
+        text-align: center;
+    }
+	
+	.d3-tip.n:after {
+        margin: -1px 0 0 0;
+        top: 100%;
+        left: 0;
+    }
+	.highlight {
+            fill:red;
+	}
+
+</style>
+	<script src="http://d3js.org/d3.v3.min.js"  charset="utf-8"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/queue-async/1.0.7/queue.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.20/topojson.min.js"></script>
+	<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+	
+<head>
+
+<body>
+
+	<h4>NAME : SUJOY SUPRIYO KAR AND HARDIK SANKHLA</h4>
+	<h4>STUDENT ID: #01577342 AND #01617980 RESPECTIVELY</h4>
+	<h3>Data Visualization (DSC 530/CIS 602-01)</h3>
+	<h3>Project : Dota 2 Statistics</h3>
+	<p>This project i.e "Dota 2 statistics" has been created by Sujoy Kar and Hardik Sankhla. The Main aim of this project is to capture live data of players playing Dota all over the world and to present a visualization to demonstrate different trends, activities and stats.</p>
+	<p>Please wait for <b><u>15-20 seconds</u></b> for the project to load as we have added a delay for some datasets to load up properly</p>
+	<p>This project requires <b><u>"Allow-Control-Allow-Origin: *"</u></b> for chrome(browser), so please download the chrome extention from : "https://chrome.google.com/webstore/detail/allow-control-allow-origi/nlfbmbojpeacfghkpbjhddihlkkiljbi?hl=en"</p> 
+	<p><b>Table of Contents</b><br>
+	1. Choropleth representation for the Player's country data of games that ended recently(Refresh for new Output)<br>
+	2. A D3 Radar Chart Design<br>
+	3. Trend Chart for a particular Hero(character) being played the most</p>
+	<div class="dropdown">
+	<span><button type="button"><h1>Other visualization Tool</h1></button></span>
+	<div class="dropdown-content">
+	<a href="index1.html"><h3>Recorded Data</h3></a>
+	<a href="hero.html"><h3>Hero Data</h3></a>
+	</div>
+	</div>
+	<div id="Choropleth"><h1>Player data of Games ended recently</h1></div>
+	<div id="radarChartDesign"><h1>D3 Radar Chart Design of Players playing in a particular country</h1></div>
+	
+	
+	<script>
+
+		/*svg.on("mousemove", function() {
+		  var p = d3.mouse(this);
+		  projection.rotate([x(p[0]), y(p[1])]);
+		  svg.selectAll("path").attr("d", path);
+		});*/
+		
+		
+		function processData(errors, getMatchHistory, world) {
+			console.log(getMatchHistory);
+			console.log(world);
+			
+			var accountId = [];
+			
+				for(var j = 0; j < getMatchHistory.result.matches.length; j++)
+				{
+					for(var k = 0; k < getMatchHistory.result.matches[j].players.length; k++)
+					{
+						if(getMatchHistory.result.matches[j].players[k].account_id === parseInt(getMatchHistory.result.matches[j].players[k].account_id, 10))		//Reference: http://stackoverflow.com/questions/14636536/how-to-check-if-a-variable-is-an-integer-in-javascript
+							if(getMatchHistory.result.matches[j].players[k].account_id != 4294967295)		// Anonymous account_id which can't be accessed
+								accountId.push(getMatchHistory.result.matches[j].players[k].account_id);
+					}
+				}
+			console.log(accountId);
+			accountId.sort();
+			console.log(accountId);
+			
+			//Reference : http://stackoverflow.com/questions/19395257/how-to-count-duplicate-value-in-an-array-in-javascript
+			var countAccountId = [];			
+			var current = null;
+			var count = 0;
+			
+			for (var i = 0; i < accountId.length; i++) 
+			{
+				if (accountId[i] != current) 
+				{
+					if (count > 0) 
+					{
+					countAccountId.push([current,count]);
+					}
+					current = accountId[i];
+					count = 1;
+				} 
+				else 
+				{
+					count++;
+				}
+			}
+			
+			if (count > 0) 
+			{
+				countAccountId.push([current,count]);
+			}
+			//console.log(countAccountId);
+						
+			var onlyAccountId = [];
+						
+			for (var i = 0; i < countAccountId.length; i++)
+			{
+				onlyAccountId.push(countAccountId[i].slice(0,1));
+			}
+			console.log(onlyAccountId);
+				
+			var getUsers = [];
+			
+			for(var i =0; i < onlyAccountId.length; i++)
+			{
+				//console.log(onlyAccountId[i]);
+				var steamids = onlyAccountId[i][0] + 76561197960265728;
+				
+				function tempData(errors, file4data) 
+				{
+					getUsers.push(file4data.response.players);
+					//console.log(steamids);
+					//console.log(file4data);
+				}
+			
+			queue()
+			   .defer(d3.json, "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=3E11DA346FDD004A984BB5C028DED83B&steamids="+steamids)
+			   .await(tempData);
+			}
+
+			//Reference: http://stackoverflow.com/questions/3583724/how-do-i-add-a-delay-in-a-javascript-loop
+			//We had to use delay as the data was not being loaded up in the array and was displaying an enpty array in the console as .await created some issues from the above lines.
+			
+			var x = 1;                     					//  set your counter to 1
+
+			function myLoop () 
+			{           									//  create a loop function
+			   setTimeout(function () 
+			   {    										//  call a 3s setTimeout when the loop is called
+				//  your code here
+				
+				console.log(onlyAccountId.length);
+				console.log(getUsers);
+				console.log(getUsers.length);
+				var countryCode = [];
+				
+				for(var i = 0; i < getUsers.length; i++)
+				{	
+					if(getUsers[i].length!=0){
+						if(getUsers[i][0].loccountrycode  !== undefined  )
+						{
+							countryCode.push(getUsers[i][0].loccountrycode);
+							//console.log(getUsers[i][0].loccountrycode);
+							//console.log(i);
+						}
+					}
+				}
+				//console.log(countryCode);
+				countryCode.sort();
+				console.log(countryCode);
+				
+			var countLocation = [];			
+			var current1 = null;
+			var count1 = 0;
+			
+			for (var i = 0; i < countryCode.length; i++) 
+			{
+				if (countryCode[i] != current1) 
+				{
+					if (count1 > 0) 
+					{
+					countLocation.push([current1,count1]);
+					}
+					current1 = countryCode[i];
+					count1 = 1;
+				} 
+				else 
+				{
+					count1++;
+				}
+			}
+			
+			if (count1 > 0) 
+			{
+				countLocation.push([current1,count1]);
+			}
+			console.log(countLocation);
+			
+			var cirrulardata = [];
+			var cirrularvalues=[];
+			for(j=0;j<1;j++){
+				for (var i = 0; i < countLocation.length; i++)
+				{
+					//nodes.push({"name" : testForce[i].city});
+					cirrularvalues.push({axis:countLocation[i][0],value:countLocation[i][1]});
+				}
+				
+				cirrulardata.push(cirrularvalues);
+			}
+			console.log(cirrulardata);
+			
+			var min = 0;//countLocation[0][1];
+			var max = countLocation[0][1];
+			
+			for(var i = 0; i < countLocation.length; i++)
+			{
+				if(min > countLocation[i][1])
+				{
+					min = countLocation[i][1];
+				}
+				if(max < countLocation[i][1])
+				{
+					max = countLocation[i][1];
+				}
+			}
+				console.log("min = "+min);
+				console.log("max = "+max);
+			
+			var color;
+			color = d3.scale.linear()
+			.domain([min,max])
+			.range(["rgb(255,255,250)", "rgb(0,100,50)"])
+			.interpolate(d3.interpolateHcl);
+				
+			var countries = [];
+			
+			for(var j=0;j<world.features.length;j++)
+			{
+				countries.push([world.features[j].properties.SOV_A3.substr(0,2),j%max]);
+			}
+			
+			for(var j=0;j<countries.length;j++)
+			{
+				countries[j][1]=0;
+				for(var k=0;k< countLocation.length;k++)
+				{
+					if(countries[j][0]==countLocation[k][0])
+					{
+						countries[j][1]=countLocation[k][1];
+					}
+				}
+			}
+			console.log(countries);
+			
+			var width = 1000;
+			var height = 750;
+			
+			//Reference: http://bl.ocks.org/mbostock/3021474
+			//Reference: http://bl.ocks.org/mbostock/3795040
+			
+			/*var rotate = [-71.03, 42.37],
+				velocity = [.018, .006];*/
+				
+			var canvas = d3.select("div#Choropleth").append("svg")
+				.attr("width", width)
+				.attr("height", height)
+
+
+			var project = d3.geo.mercator()
+				.scale(85)
+				//.translate([width / 2, height / 2])
+				//.clipAngle(90);
+				
+			var path = d3.geo.path().projection(project);
+			
+			//var graticule = d3.geo.graticule();
+
+			/*var a = d3.scale.linear()
+				.domain([0, width])
+				.range([-180, 180]);
+
+			var b = d3.scale.linear()
+				.domain([0, height])
+				.range([90, -90]);
+
+			canvas.on("mousemove", function() 
+			{
+			  var p = d3.mouse(this);
+			  project.rotate([a(p[0]), b(p[1])]);
+			  canvas.selectAll("path").attr("d", path);
+			});*/
+
+			
+			var Group = canvas.selectAll("g")
+				.data(world.features)
+				.enter()
+				.append("g")
+				
+			console.log(world.features);
+			
+			var areas = Group.append("path")
+				.attr("d",path)
+				.attr("class", "state-boundary")
+				.attr("stroke","black")
+				.attr("class","map")
+				.style("fill", function(d,i)
+					{return color(countries[i][1])});
+					
+			var tooltip = d3.tip()
+				.attr("class", "d3-tip")
+				.offset([-10, 0])
+				.html(function(d){ 	for(i=0;i<countries.length;i++){
+										if(d.properties.SOV_A3.substr(0,2)==countries[i][0])
+										var n = countries[i][1];
+										}
+					return "Country: "+d.properties.SOVEREIGNT+"<br>no. of players: "+n;
+				});
+			
+			canvas.call(tooltip);
+			canvas.selectAll('path')
+				.on('mouseover', tooltip.show)
+				.on('mouseout', tooltip.hide);
+				
+			/*var selectMap = d3.selectAll("#Choropleth div").select("canvas");
+				//selectMap.call(tooltip);
+
+				selectMap
+					.selectAll("path")
+					.on("mouseenter", mapmouseover)
+					.on("mouseout", mapmouseout);
+					
+					
+			function mapmouseover(){
+				var mapMoveIn = d3.select(this)
+									.classed("highlight", true);
+									
+				var x = d3.select(this)
+							.datum();
+							
+				//console.log(x);
+						d3.selectAll("#radarChartDesign canvas1")
+							.selectAll("circle").filter(function (d){
+								return (x.properties.SOV_A3.substr(0,2) === d[0]);
+							})
+							.classed("highlight", true);
+							
+								
+			}
+
+			function mapmouseout(){
+				var mapMoveOut = d3.select(this)
+									.classed("highlight", false)
+				
+				var y = d3.select(this)
+							.datum();
+				//console.log(y);
+						d3.selectAll("#radarChartDesign canvas1")
+							.selectAll("circle").filter(function(d){
+								return (y.properties.SOV_A3.substr(0,2) === d[0]);
+							})
+							.classed("highlight", false);
+							
+			}
+
+
+			var selectBar = d3.selectAll("#radarChartDesign canvas1")
+							//selectBar.call(tooltip);
+							
+							selectBar
+								.selectAll(".radarCircle")
+								.on("mouseenter", barmouseover)
+								.on("mouseout", barmouseout);
+						//selectBar.call(tooltip);	
+
+			function barmouseover(){
+				var barMoveIn = d3.select(this)
+									.selectAll("circle")
+									.classed("highlight", true);
+					
+				var a = d3.select(this)
+							.datum();
+						d3.selectAll("#Choropleth canvas")
+							.selectAll("path").filter(function(d){
+									return (d[0] === a.properties.SOV_A3.substr(0,2));
+							})
+							.classed("highlight", true);
+			}
+				
+			function barmouseout(){	
+				var barMoveOut = d3.select(this)
+									.selectAll("circle")
+									.classed("highlight", false);
+					
+				var b = d3.select(this)
+							.datum();
+						d3.selectAll("#Choropleth canvas")
+							.selectAll("path").filter(function(d){
+									return (d[0] === b.properties.SOV_A3.substr(0,2));
+							})
+							.classed("highlight", false);
+				
+}*/
+			
+			/*var timer_ret_val = false;
+			
+			canvas.on("mouseclick", function() 
+			{
+				timer_ret_val = true;
+			});*/
+			
+			/*d3.timer(function (elapsed)
+			{
+				project.rotate([rotate[0] + elapsed * velocity[0], rotate[i] + elapsed * velocity[1]]);
+				areas.attr("d", path);
+				//return timer_ret_val;
+			});*/
+			
+				
+			// create a legend
+			var legendSize = 150;
+			var numLevels;
+			// for continuous, each rect is 1px wide
+			numLevels = 150;
+			var legend = canvas.append("g").attr("class", "YlGn");
+			var levels = legend.selectAll("levels")
+			.data(d3.range(numLevels))
+			.enter().append("rect")
+			.attr("x", function(d) {
+					return width - legendSize - 90 +
+					d * legendSize / numLevels;
+			})
+			.attr("y", height - 20)
+			.attr("width", legendSize / numLevels)
+			.attr("height", 16)
+			.style("stroke", "none");
+
+			levels.style("fill", function(d) {
+				return color(min * (legendSize - d) / legendSize + max * d / legendSize);
+			})
+			  
+
+			legend.append("text")
+			.attr("x", width - legendSize - 90)
+			.attr("y", height - 24)
+			.attr("text-anchor", "middle")
+			.text(min)
+
+			legend.append("text")
+			.attr("x", width - 90)
+			.attr("y", height - 24)
+			.attr("text-anchor", "middle")
+			.text(max)
+
+			legend.append("text")
+			.attr("x", width - legendSize / 2 - 90)
+			.attr("y", height - 40)
+			.attr("text-anchor", "middle")
+			.text("Players playing currently in a country")	
+			
+			
+			var canvas1 = d3.select("div#radarChartDesign").append("svg")
+				.attr("class", "radarChart")
+				.attr("width", 1000)
+				.attr("height", 800)
+				
+			//Reference: http://www.visualcinnamon.com/2015/10/different-look-d3-radar-chart.html
+			//Reference: http://bl.ocks.org/nbremer/21746a9668ffdf6d8242
+			
+			var color = d3.scale.ordinal().range(["#00A0B0","#EDC951","#CC333F"]);
+	
+			var radarChartOptions = {
+			w: 600,				//Width of the circle
+			h: 600,				//Height of the circle
+			margin: {top: 100, right: 200, bottom: 100, left: 200}, //The margins of the SVG
+			levels: max,				//How many levels or inner circles should be drawn
+			maxValue: max, 			//What is the value that the biggest circle will represent
+			labelFactor: 1.05, 	//How much farther than the radius of the outer circle should the labels be placed
+			wrapWidth: 60, 		//The number of pixels after which a label needs to be given a new line
+			opacityArea: 0.35, 	//The opacity of the area of the blob
+			dotRadius: 4, 			//The size of the colored circles of each blog
+			opacityCircles: 0.1, 	//The opacity of the circles of each blob
+			strokeWidth: 2, 		//The width of the stroke around each blob
+			roundStrokes: true,	//If true the area and stroke will follow a round path (cardinal-closed)
+			color: color	//Color function
+			};
+			//Call function to draw the Radar chart
+			//RadarChart("id or class of to which the new SVG needs to be appended", the dataset, the options (optional))
+			RadarChart(".radarChart", cirrulardata, radarChartOptions);
+
+			function RadarChart(id, data, options) {
+			console.log(data);
+			var cfg = {
+			 w: 600,				//Width of the circle
+			 h: 600,				//Height of the circle
+			 margin: {top: 200, right: 200, bottom: 200, left: 200}, //The margins of the SVG
+			 levels: max,				//How many levels or inner circles should there be drawn
+			 maxValue: max, 			//What is the value that the biggest circle will represent
+			 labelFactor: 1.05, 	//How much farther than the radius of the outer circle should the labels be placed
+			 wrapWidth: 60, 		//The number of pixels after which a label needs to be given a new line
+			 opacityArea: 0.35, 	//The opacity of the area of the blob
+			 dotRadius: 4, 			//The size of the colored circles of each blog
+			 opacityCircles: 0.1, 	//The opacity of the circles of each blob
+			 strokeWidth: 2, 		//The width of the stroke around each blob
+			 roundStrokes: true,	//If true the area and stroke will follow a round path (cardinal-closed)
+			 color: color	//Color function
+			};
+			
+			//Put all of the options into a variable called cfg
+			if('undefined' !== typeof options){
+			  for(var i in options){
+				if('undefined' !== typeof options[i]){ cfg[i] = options[i]; }
+			  }//for i
+			}//if
+			
+			//If the supplied maxValue is smaller than the actual one, replace by the max in the data
+			var maxValue = max;
+				
+			var allAxis = (data[0].map(function(i, j){return i.axis})),	//Names of each axis
+				total = allAxis.length,					//The number of different axes
+				radius = Math.min(cfg.w/2, cfg.h/2), 	//Radius of the outermost circle
+				Format = d3.format('%'),			 	//Percentage formatting
+				angleSlice = Math.PI * 2 / total;		//The width in radians of each "slice"
+			
+			//Scale for the radius
+			var rScale = d3.scale.linear()
+				.range([0, radius])
+				.domain([0, maxValue]);
+				
+			/////////////////////////////////////////////////////////
+			//////////// Create the container SVG and g /////////////
+			/////////////////////////////////////////////////////////
+
+			//Remove whatever chart with the same id/class was present before
+			d3.select(id).select("svg").remove();
+			
+			//Initiate the radar chart SVG
+			var svg = d3.select(id).append("svg")
+					.attr("width",  cfg.w + cfg.margin.left + cfg.margin.right)
+					.attr("height", cfg.h + cfg.margin.top + cfg.margin.bottom)
+					.attr("class", "radar"+id);
+			//Append a g element		
+			var g = svg.append("g")
+					.attr("transform", "translate(" + (cfg.w/2 + cfg.margin.left) + "," + (cfg.h/2 + cfg.margin.top) + ")");
+			
+			/////////////////////////////////////////////////////////
+			////////// Glow filter for some extra pizzazz ///////////
+			/////////////////////////////////////////////////////////
+			
+			//Filter for the outside glow
+			var filter = g.append('defs').append('filter').attr('id','glow'),
+				feGaussianBlur = filter.append('feGaussianBlur').attr('stdDeviation','2.5').attr('result','coloredBlur'),
+				feMerge = filter.append('feMerge'),
+				feMergeNode_1 = feMerge.append('feMergeNode').attr('in','coloredBlur'),
+				feMergeNode_2 = feMerge.append('feMergeNode').attr('in','SourceGraphic');
+
+			/////////////////////////////////////////////////////////
+			/////////////// Draw the Circular grid //////////////////
+			/////////////////////////////////////////////////////////
+			
+			//Wrapper for the grid & axes
+			var axisGrid = g.append("g").attr("class", "axisWrapper");
+			
+			//Draw the background circles
+			axisGrid.selectAll(".levels")
+			   .data(d3.range(1,(cfg.levels+1)).reverse())
+			   .enter()
+				.append("circle")
+				.attr("class", "gridCircle")
+				.attr("r", function(d, i){return radius/cfg.levels*d;})
+				.style("fill", "#CDCDCD")
+				.style("stroke", "#CDCDCD")
+				.style("fill-opacity", cfg.opacityCircles)
+				.style("filter" , "url(#glow)");
+
+			//Text indicating at what % each level is
+			axisGrid.selectAll(".axisLabel")
+			   .data(d3.range(1,(cfg.levels+1)).reverse())
+			   .enter().append("text")
+			   .attr("class", "axisLabel")
+			   .attr("x", 4)
+			   .attr("y", function(d){return -d*radius/cfg.levels;})
+			   .attr("dy", "0.4em")
+			   .style("font-size", "10px")
+			   .attr("fill", "#737373")
+			   .text(function(d,i) { return Format(maxValue * d/cfg.levels); });
+
+			/////////////////////////////////////////////////////////
+			//////////////////// Draw the axes //////////////////////
+			/////////////////////////////////////////////////////////
+			
+			//Create the straight lines radiating outward from the center
+			var axis = axisGrid.selectAll(".axis")
+				.data(allAxis)
+				.enter()
+				.append("g")
+				.attr("class", "axis");
+			//Append the lines
+			axis.append("line")
+				.attr("x1", 0)
+				.attr("y1", 0)
+				.attr("x2", function(d, i){ return rScale(maxValue*1.1) * Math.cos(angleSlice*i - Math.PI/2); })
+				.attr("y2", function(d, i){ return rScale(maxValue*1.1) * Math.sin(angleSlice*i - Math.PI/2); })
+				.attr("class", "line")
+				.style("stroke", "white")
+				.style("stroke-width", "2px");
+
+			//Append the labels at each axis
+			axis.append("text")
+				.attr("class", "legend")
+				.style("font-size", "11px")
+				.attr("text-anchor", "middle")
+				.attr("dy", "0.35em")
+				.attr("x", function(d, i){ return rScale(maxValue * cfg.labelFactor) * Math.cos(angleSlice*i - Math.PI/2); })
+				.attr("y", function(d, i){ return rScale(maxValue * cfg.labelFactor) * Math.sin(angleSlice*i - Math.PI/2); })
+				.text(function(d){return d})
+				.call(wrap, cfg.wrapWidth);
+
+			/////////////////////////////////////////////////////////
+			///////////// Draw the radar chart blobs ////////////////
+			/////////////////////////////////////////////////////////
+			
+			//The radial line function
+			var radarLine = d3.svg.line.radial()
+				.interpolate("linear-closed")
+				.radius(function(d) { return rScale(d.value); })
+				.angle(function(d,i) {	return i*angleSlice; });
+				
+			if(cfg.roundStrokes) {
+				radarLine.interpolate("cardinal-closed");
+			}
+						
+			//Create a wrapper for the blobs	
+			var blobWrapper = g.selectAll(".radarWrapper")
+				.data(data)
+				.enter().append("g")
+				.attr("class", "radarWrapper");
+					
+			//Append the backgrounds	
+			blobWrapper
+				.append("path")
+				.attr("class", "radarArea")
+				.attr("d", function(d,i) { return radarLine(d); })
+				.style("fill", function(d,i) { return cfg.color(i); })
+				.style("fill-opacity", cfg.opacityArea)
+				.on('mouseover', function (d,i){
+					//Dim all blobs
+					d3.selectAll(".radarArea")
+						.transition().duration(200)
+						.style("fill-opacity", 0.1); 
+					//Bring back the hovered over blob
+					d3.select(this)
+						.transition().duration(200)
+						.style("fill-opacity", 0.7);	
+				})
+				.on('mouseout', function(){
+					//Bring back all blobs
+					d3.selectAll(".radarArea")
+						.transition().duration(200)
+						.style("fill-opacity", cfg.opacityArea);
+				});
+				
+			//Create the outlines	
+			blobWrapper.append("path")
+				.attr("class", "radarStroke")
+				.attr("d", function(d,i) { return radarLine(d); })
+				.style("stroke-width", cfg.strokeWidth + "px")
+				.style("stroke", function(d,i) { return cfg.color(i); })
+				.style("fill", "none")
+				.style("filter" , "url(#glow)");		
+			
+			//Append the circles
+			blobWrapper.selectAll(".radarCircle")
+				.data(function(d,i) { return d; })
+				.enter().append("circle")
+				.attr("class", "radarCircle")
+				.attr("r", cfg.dotRadius)
+				.attr("cx", function(d,i){ return rScale(d.value) * Math.cos(angleSlice*i - Math.PI/2); })
+				.attr("cy", function(d,i){ return rScale(d.value) * Math.sin(angleSlice*i - Math.PI/2); })
+				.style("fill", function(d,i,j) { return cfg.color(j); })
+				.style("fill-opacity", 0.8);
+
+			/////////////////////////////////////////////////////////
+			//////// Append invisible circles for tooltip ///////////
+			/////////////////////////////////////////////////////////
+			
+			//Wrapper for the invisible circles on top
+			var blobCircleWrapper = g.selectAll(".radarCircleWrapper")
+				.data(data)
+				.enter().append("g")
+				.attr("class", "radarCircleWrapper");
+				
+			//Append a set of invisible circles on top for the mouseover pop-up
+			blobCircleWrapper.selectAll(".radarInvisibleCircle")
+				.data(function(d,i) { return d; })
+				.enter().append("circle")
+				.attr("class", "radarInvisibleCircle")
+				.attr("r", cfg.dotRadius*1.5)
+				.attr("cx", function(d,i){ return rScale(d.value) * Math.cos(angleSlice*i - Math.PI/2); })
+				.attr("cy", function(d,i){ return rScale(d.value) * Math.sin(angleSlice*i - Math.PI/2); })
+				.style("fill", "none")
+				.style("pointer-events", "all")
+				.on("mouseover", function(d,i) {
+					newX =  parseFloat(d3.select(this).attr('cx')) - 10;
+					newY =  parseFloat(d3.select(this).attr('cy')) - 10;
+							
+					tooltip
+						.attr('x', newX)
+						.attr('y', newY)
+						.text(Format(d.value))
+						.transition().duration(200)
+						.style('opacity', 1);
+				})
+				.on("mouseout", function(){
+					tooltip.transition().duration(200)
+						.style("opacity", 0);
+				});
+				
+			//Set up the small tooltip for when you hover over a circle
+			var tooltip = g.append("text")
+				.attr("class", "tooltip")
+				.style("opacity", 0);
+			
+			/////////////////////////////////////////////////////////
+			/////////////////// Helper Function /////////////////////
+			/////////////////////////////////////////////////////////
+
+			//Taken from http://bl.ocks.org/mbostock/7555321
+			//Wraps SVG text	
+			function wrap(text, width) {
+			  text.each(function() {
+				var text = d3.select(this),
+					words = text.text().split(/\s+/).reverse(),
+					word,
+					line = [],
+					lineNumber = 0,
+					lineHeight = 1.4, // ems
+					y = text.attr("y"),
+					x = text.attr("x"),
+					dy = parseFloat(text.attr("dy")),
+					tspan = text.text(null).append("tspan").attr("x", x).attr("y", y).attr("dy", dy + "em");
+					
+				while (word = words.pop()) {
+				  line.push(word);
+				  tspan.text(line.join(" "));
+				  if (tspan.node().getComputedTextLength() > width) {
+					line.pop();
+					tspan.text(line.join(" "));
+					line = [word];
+					tspan = text.append("tspan").attr("x", x).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+				  }
+				}
+			  });
+			}//wrap	
+			
+			}//RadarChart
+			/*var projection = d3.geo.mercator()
+			//var projection = d3.geo.orthographic()
+				.scale(100)
+				.translate([width / 2, height / 2])
+				//.clipAngle(90);
+
+			var path = d3.geo.path()
+				.projection(projection);
+
+			//var x = d3.scale.linear()
+				//.domain([0, width])
+				//.range([-180, 180]);
+
+			//var y = d3.scale.linear()
+				//.domain([0, height])
+				//.range([90, -90]);
+				
+
+			var svg = d3.select("body").append("svg")
+				.attr("width", width)
+				.attr("height", height);
+				
+			svg.append("path")
+				.data(world.features)
+				//.datum(topojson.feature(world, world.features))
+				//.attr("class", "land")
+				.attr("d", path)
+				.attr("fill", "steelblue")
+				.attr("stroke", "black");
+				
+			var color = d3.scale.linear();
+				color.domain([min,max])
+					.range(["rgb(193,255,193)", "rgb(34,139,34)"])
+					.interpolate(d3.interpolateHcl);
+						
+			var areas = svg.append("path")
+				.attr("d",path)
+				.attr("class", "area")
+				.attr("stroke", "black")
+				.attr("fill", function(d,i)	{return color(countLocation[i])});*/
+				//var selectMap = d3.selectAll("#Choropleth canvas");
+
+				/*canvas
+					.selectAll(".map")
+					.on("mouseenter", mapmouseover)
+					.on("mouseout", mapmouseout)
+					;
+								
+								
+				function mapmouseover(){
+					
+					var mapMoveIn = d3.select(this)
+						.classed("highlight", true);
+										
+					var x = d3.select(this)
+						.datum();
+					
+						d3.selectAll("#radarChartDesign canvas1")
+							.selectAll("circle")//.filter(function (d){
+								//return (d.County === x.properties.county_nam);
+							//})
+							.classed("highlight", true);
+								
+									
+				}
+				
+				function mapmouseout(){
+					var mapMoveOut = d3.select(this)
+						.classed("highlight", false);
+					
+					d3.selectAll("#radarChartDesign canvas1")
+						.selectAll("circle")
+						.classed("highlight", false);
+								
+				}	*/
+				
+				
+				//  your code ends here
+				  x++;                     					//  increment the counter
+				  if (x < 1) 
+				  {            								//  if the counter < 10, call the loop function
+					 myLoop();             					//  ..  again which will trigger another 
+				  }                        					//  ..  setTimeout()
+			   }, 15000)
+			}
+			myLoop();
+
+				
+			
+		}
+		
+		queue()
+						.defer(d3.json, "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v001/?key=332C490A9CE67E401FED8FC2DBEBDCFA")
+						.defer(d3.json, "https://gist.githubusercontent.com/anonymous/b06746947e172c48eef726ec675eb244/raw/dd3a9aba25888d2140f831996002253e18d421af/countries-hires.json")	//Had to reupload the countries-hires.json file.
+						.await(processData);
+	
+	
+		
+	</script>
+
+
+</body>
+
+
+
+</html>
